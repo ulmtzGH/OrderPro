@@ -1,0 +1,96 @@
+<div class="space-y-6 pb-16">
+  <h1 class="text-3xl font-bold text-white">Órdenes</h1>
+  
+  <!-- Filter Controls -->
+  <div class="space-y-4">
+    <div class="relative">
+      <label for="order-search" class="sr-only">Buscar por mesa, cliente o ID</label>
+      <input 
+        id="order-search"
+        type="text" 
+        placeholder="Buscar por mesa, cliente o ID..."
+        [value]="searchFilter()"
+        (input)="updateSearchFilter($event)"
+        class="w-full bg-slate-700 border border-slate-600 rounded-full py-2 pl-10 pr-10 text-white placeholder-slate-400 focus:ring-primary-500 focus:border-primary-500"
+      >
+      <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+        <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+      </div>
+      @if (searchFilter()) {
+        <button (click)="clearSearchFilter()" type="button" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-white">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      }
+    </div>
+    <div class="flex flex-wrap gap-2">
+      @for(status of statuses; track status) {
+        <button 
+          (click)="setFilter(status)"
+          [class.bg-primary-600]="filterStatus() === status"
+          [class.text-white]="filterStatus() === status"
+          [class.bg-slate-700]="filterStatus() !== status"
+          [class.text-slate-300]="filterStatus() !== status"
+          class="px-4 py-2 text-sm font-medium rounded-full whitespace-nowrap hover:bg-primary-500 transition-colors">
+          {{ status }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    @for(order of filteredOrders(); track order.id) {
+      <div class="bg-slate-800 rounded-xl shadow-lg p-5 flex flex-col space-y-4">
+        <div class="flex justify-between items-start">
+          <div>
+            @if (order.isTakeaway) {
+              <h2 class="text-xl font-bold text-white truncate">{{ order.customerName }}</h2>
+              <p class="text-sm font-medium text-primary-400 -mt-1">Pedido para llevar</p>
+            } @else {
+              <h2 class="text-xl font-bold text-white">Mesa #{{ order.tableNumber }}</h2>
+            }
+            <p class="text-sm text-slate-400 mt-1">ID: {{ order.id }}</p>
+          </div>
+          <app-order-status-badge [status]="order.status"></app-order-status-badge>
+        </div>
+        
+        <div class="border-t border-slate-700 pt-4 space-y-3">
+          @for(item of order.items; track item.product.id) {
+            <div>
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-300">{{ item.product.name }}</span>
+                <span class="text-slate-400">x{{ item.quantity }}</span>
+              </div>
+              @if (item.comments) {
+                <p class="text-xs text-amber-300/90 italic pl-2 border-l-2 border-amber-400/50 ml-1 mt-1">
+                  {{ item.comments }}
+                </p>
+              }
+            </div>
+          }
+        </div>
+        
+        <div class="border-t border-slate-700 pt-4 flex justify-between items-center">
+          <span class="text-lg font-semibold text-white">{{ order.total | currency:'EUR' }}</span>
+          <p class="text-xs text-slate-500">{{ order.createdAt | date:'shortTime' }}</p>
+        </div>
+
+        <div class="pt-4 flex flex-col space-y-2">
+           @if (getNextStatus(order.status)) {
+            <button (click)="updateOrderStatus(order, getNextStatus(order.status)!)" class="w-full bg-primary-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors">
+              Marcar como {{ getNextStatus(order.status) }}
+            </button>
+          }
+          @if (order.status !== 'Cancelado' && order.status !== 'Entregado' && order.status !== 'Pagado') {
+            <button (click)="updateOrderStatus(order, 'Cancelado')" class="w-full bg-red-800/80 text-red-200 font-semibold py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
+              Cancelar
+            </button>
+          }
+        </div>
+      </div>
+    } @empty {
+      <div class="col-span-full text-center py-16 bg-slate-800 rounded-xl">
+        <p class="text-slate-400">No hay órdenes con los filtros seleccionados.</p>
+      </div>
+    }
+  </div>
+</div>

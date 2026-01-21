@@ -1,0 +1,249 @@
+<div class="flex flex-col lg:flex-row h-[calc(100vh-4rem)] gap-6">
+  
+  <!-- Menu Items -->
+  <div class="lg:w-2/3 overflow-y-auto pr-4 pb-28 lg:pb-6">
+    <h1 class="text-3xl font-bold text-white mb-6">Crear Nueva Orden</h1>
+
+    <!-- Filters -->
+    <div class="space-y-4 mb-6">
+      <div class="relative">
+        <label for="name-search" class="sr-only">Buscar por nombre</label>
+        <input 
+          id="name-search"
+          type="text" 
+          placeholder="Buscar producto por nombre..."
+          [value]="nameFilter()"
+          (input)="updateNameFilter($event)"
+          class="w-full bg-slate-700 border border-slate-600 rounded-full py-2 pl-10 pr-10 text-white placeholder-slate-400 focus:ring-primary-500 focus:border-primary-500"
+        >
+        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
+        @if (nameFilter()) {
+          <button (click)="clearNameFilter()" type="button" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-white">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        }
+      </div>
+      <div class="flex flex-wrap gap-2 pb-2">
+        @for(category of uniqueCategories(); track category) {
+          <button 
+            (click)="setCategoryFilter(category)"
+            [class.bg-primary-600]="categoryFilter() === category"
+            [class.text-white]="categoryFilter() === category"
+            [class.bg-slate-700]="categoryFilter() !== category"
+            [class.text-slate-300]="categoryFilter() !== category"
+            class="px-4 py-2 text-sm font-medium rounded-full hover:bg-primary-500 transition-colors">
+            {{ category }}
+          </button>
+        }
+      </div>
+    </div>
+
+    @for(group of groupedProducts(); track group.category) {
+      <div class="mb-8">
+        <h2 class="text-2xl font-semibold text-primary-400 mb-4">{{ group.category }}</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          @for(product of group.products; track product.id) {
+            <button (click)="addToOrder(product)" class="bg-slate-800 rounded-lg p-4 text-left hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+              <div class="flex flex-col h-full">
+                <img [src]="product.imageUrl" [alt]="product.name" class="w-full h-32 object-cover rounded-md mb-3">
+                <h3 class="font-semibold text-white">{{ product.name }}</h3>
+                <p class="text-sm text-slate-400 flex-grow">{{ product.description }}</p>
+                <p class="text-lg font-bold text-primary-400 mt-2">{{ product.price | currency:'EUR' }}</p>
+              </div>
+            </button>
+          }
+        </div>
+      </div>
+    } @empty {
+        <div class="text-center py-16 bg-slate-800/50 rounded-xl">
+          <p class="text-slate-400">No se encontraron productos con los filtros seleccionados.</p>
+        </div>
+    }
+  </div>
+
+  <!-- Desktop Order Summary -->
+  <div class="hidden lg:w-1/3 bg-slate-800 rounded-xl p-6 lg:flex flex-col h-[calc(100vh-8rem)] sticky top-6">
+    <h2 class="text-2xl font-bold text-white mb-4">Resumen del Pedido</h2>
+    
+    <div class="space-y-4 mb-4">
+        <label class="inline-flex items-center cursor-pointer">
+            <input type="checkbox" [checked]="isTakeaway()" (change)="toggleTakeaway()" class="sr-only peer">
+            <div class="relative w-11 h-6 bg-slate-600 rounded-full peer peer-focus:ring-4 peer-focus:ring-primary-800 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+            <span class="ms-3 text-sm font-medium text-slate-300">Para Llevar</span>
+        </label>
+        @if (isTakeaway()) {
+            <div>
+                <label for="customerName" class="block text-sm font-medium text-slate-300">Nombre del Cliente</label>
+                <input type="text" id="customerName" name="customerName" [(ngModel)]="customerName" class="mt-1 w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:ring-primary-500 focus:border-primary-500" placeholder="Ej: Juan Pérez" required>
+            </div>
+        } @else {
+            <div>
+                <label for="tableNumber" class="block text-sm font-medium text-slate-300">Número de Mesa</label>
+                <input type="number" id="tableNumber" name="tableNumber" [(ngModel)]="tableNumber" class="mt-1 w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:ring-primary-500 focus:border-primary-500" placeholder="Ej: 5" min="1">
+            </div>
+        }
+    </div>
+    
+    <div class="flex-grow overflow-y-auto -mr-4 pr-4">
+      @for(item of orderItems(); track item.product.id) {
+        <div class="py-3 border-b border-slate-700/50 last:border-b-0">
+          <div class="flex items-center">
+            <div class="flex-grow">
+              <p class="text-white font-medium">{{ item.product.name }}</p>
+              <p class="text-sm text-slate-400">{{ item.product.price | currency:'EUR' }}</p>
+            </div>
+            <div class="flex items-center bg-slate-700 rounded-full">
+              <button (click)="updateQuantity(item.product.id, -1)" class="px-3 py-1 text-white rounded-l-full hover:bg-slate-600">-</button>
+              <span class="px-3 text-white font-semibold">{{ item.quantity }}</span>
+              <button (click)="updateQuantity(item.product.id, 1)" class="px-3 py-1 text-white rounded-r-full hover:bg-slate-600">+</button>
+            </div>
+          </div>
+          <div class="mt-2 text-sm">
+            @if (editingCommentId() === item.product.id) {
+              <textarea [value]="item.comments || ''" (input)="updateComment(item.product.id, $event)" (blur)="toggleCommentEditor(item.product.id)" placeholder="Añadir nota (ej: sin cebolla)..." class="w-full bg-slate-600 border border-slate-500 rounded-md py-1 px-2 text-white text-xs focus:ring-primary-500 focus:border-primary-500" rows="2"></textarea>
+            } @else {
+              <button (click)="toggleCommentEditor(item.product.id)" class="w-full text-left text-slate-400 hover:text-primary-400 flex items-center gap-2 p-1 rounded-md hover:bg-slate-700/50 transition-colors">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                @if (item.comments) {
+                  <p class="text-slate-300 italic text-xs truncate">{{ item.comments }}</p>
+                } @else {
+                  <span class="text-xs">Añadir nota</span>
+                }
+              </button>
+            }
+          </div>
+        </div>
+      } @empty {
+        <div class="flex items-center justify-center h-full">
+          <p class="text-slate-400">Añade productos del menú.</p>
+        </div>
+      }
+    </div>
+
+    <div class="border-t border-slate-700 mt-4 pt-4 space-y-2">
+      <div class="flex justify-between text-slate-300">
+        <span>Subtotal</span>
+        <span>{{ orderSummary().subtotal | currency:'EUR' }}</span>
+      </div>
+      <div class="flex justify-between text-slate-300">
+        <span>IVA (16%)</span>
+        <span>{{ orderSummary().tax | currency:'EUR' }}</span>
+      </div>
+      <div class="flex justify-between text-white font-bold text-xl">
+        <span>Total</span>
+        <span>{{ orderSummary().total | currency:'EUR' }}</span>
+      </div>
+    </div>
+    <button (click)="placeOrder()" [disabled]="!isOrderReady()" class="mt-6 w-full bg-primary-600 text-white font-bold py-3 rounded-lg hover:bg-primary-700 transition-colors disabled:bg-slate-600 disabled:cursor-not-allowed">
+      Realizar Pedido
+    </button>
+  </div>
+
+  <!-- Mobile UI -->
+  <div class="lg:hidden">
+    <!-- Mobile Summary Bar -->
+    @if (orderItems().length > 0 && !isMobileSummaryOpen()) {
+      <div class="fixed bottom-[56px] left-0 right-0 bg-slate-800 border-t border-primary-600 p-3 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.3)] flex justify-between items-center z-40">
+        <div class="text-white">
+          <span class="font-bold">{{ orderItems().length }}</span>
+          <span>{{ orderItems().length === 1 ? ' producto' : ' productos' }}</span>
+          <span class="mx-2">|</span>
+          <span class="font-bold">{{ orderSummary().total | currency:'EUR' }}</span>
+        </div>
+        <button (click)="openMobileSummary()" class="bg-primary-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors">
+          Ver Pedido
+        </button>
+      </div>
+    }
+
+    <!-- Mobile Full Order Summary Modal -->
+    @if (isMobileSummaryOpen()) {
+      <div class="fixed inset-0 bg-slate-900 z-50 flex flex-col">
+        <!-- Modal Header -->
+        <div class="flex-shrink-0 flex justify-between items-center p-4 border-b border-slate-700">
+          <h2 class="text-xl font-bold text-white">Tu Pedido</h2>
+          <button (click)="closeMobileSummary()" class="p-2 leading-none text-2xl text-slate-400 hover:text-white">&times;</button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="flex-grow overflow-y-auto p-4">
+          <div class="space-y-4 mb-4">
+              <label class="inline-flex items-center cursor-pointer">
+                  <input type="checkbox" [checked]="isTakeaway()" (change)="toggleTakeaway()" class="sr-only peer">
+                  <div class="relative w-11 h-6 bg-slate-600 rounded-full peer peer-focus:ring-4 peer-focus:ring-primary-800 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                  <span class="ms-3 text-sm font-medium text-slate-300">Para Llevar</span>
+              </label>
+              @if (isTakeaway()) {
+                  <div>
+                      <label for="mobileCustomerName" class="block text-sm font-medium text-slate-300">Nombre del Cliente</label>
+                      <input type="text" id="mobileCustomerName" name="mobileCustomerName" [(ngModel)]="customerName" class="mt-1 w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:ring-primary-500 focus:border-primary-500" placeholder="Ej: Juan Pérez" required>
+                  </div>
+              } @else {
+                  <div>
+                      <label for="mobileTableNumber" class="block text-sm font-medium text-slate-300">Número de Mesa</label>
+                      <input type="number" id="mobileTableNumber" name="mobileTableNumber" [(ngModel)]="tableNumber" class="mt-1 w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:ring-primary-500 focus:border-primary-500" placeholder="Ej: 5" min="1">
+                  </div>
+              }
+          </div>
+          
+          @for(item of orderItems(); track item.product.id) {
+            <div class="py-3 border-b border-slate-700/50 last:border-b-0">
+              <div class="flex items-center">
+                <div class="flex-grow">
+                  <p class="text-white font-medium">{{ item.product.name }}</p>
+                  <p class="text-sm text-slate-400">{{ item.product.price | currency:'EUR' }}</p>
+                </div>
+                <div class="flex items-center bg-slate-700 rounded-full">
+                  <button (click)="updateQuantity(item.product.id, -1)" class="px-3 py-1 text-white rounded-l-full hover:bg-slate-600">-</button>
+                  <span class="px-3 text-white font-semibold">{{ item.quantity }}</span>
+                  <button (click)="updateQuantity(item.product.id, 1)" class="px-3 py-1 text-white rounded-r-full hover:bg-slate-600">+</button>
+                </div>
+              </div>
+              <div class="mt-2 text-sm">
+                @if (editingCommentId() === item.product.id) {
+                  <textarea [value]="item.comments || ''" (input)="updateComment(item.product.id, $event)" (blur)="toggleCommentEditor(item.product.id)" placeholder="Añadir nota (ej: sin cebolla)..." class="w-full bg-slate-600 border border-slate-500 rounded-md py-1 px-2 text-white text-xs focus:ring-primary-500 focus:border-primary-500" rows="2"></textarea>
+                } @else {
+                  <button (click)="toggleCommentEditor(item.product.id)" class="w-full text-left text-slate-400 hover:text-primary-400 flex items-center gap-2 p-1 rounded-md hover:bg-slate-700/50 transition-colors">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                    @if (item.comments) {
+                      <p class="text-slate-300 italic text-xs truncate">{{ item.comments }}</p>
+                    } @else {
+                      <span class="text-xs">Añadir nota</span>
+                    }
+                  </button>
+                }
+              </div>
+            </div>
+          } @empty {
+            <div class="flex items-center justify-center h-full">
+              <p class="text-slate-400">Añade productos del menú.</p>
+            </div>
+          }
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="flex-shrink-0 bg-slate-800 p-4 border-t border-slate-700">
+           <div class="space-y-2">
+            <div class="flex justify-between text-slate-300">
+              <span>Subtotal</span>
+              <span>{{ orderSummary().subtotal | currency:'EUR' }}</span>
+            </div>
+            <div class="flex justify-between text-slate-300">
+              <span>IVA (16%)</span>
+              <span>{{ orderSummary().tax | currency:'EUR' }}</span>
+            </div>
+            <div class="flex justify-between text-white font-bold text-xl">
+              <span>Total</span>
+              <span>{{ orderSummary().total | currency:'EUR' }}</span>
+            </div>
+          </div>
+          <button (click)="placeOrder()" [disabled]="!isOrderReady()" class="mt-4 w-full bg-primary-600 text-white font-bold py-3 rounded-lg hover:bg-primary-700 transition-colors disabled:bg-slate-600 disabled:cursor-not-allowed">
+            Realizar Pedido
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>

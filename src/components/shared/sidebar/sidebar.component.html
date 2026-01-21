@@ -1,0 +1,40 @@
+<!-- Desktop Sidebar -->
+<aside class="hidden md:flex flex-col w-64 bg-slate-800 text-slate-200">
+  <div class="flex items-center justify-center h-16 bg-slate-900">
+    <span class="text-white text-2xl font-bold">OrderPro</span>
+  </div>
+  <nav class="flex-1 px-2 py-4 space-y-2">
+    @for(link of navLinks; track link.path) {
+      @if (!link.adminOnly || isAdmin) {
+        <a [routerLink]="link.path" routerLinkActive="bg-slate-700 text-white" [routerLinkActiveOptions]="{ exact: true }" class="flex items-center px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white rounded-md transition-colors duration-200">
+          <span class="text-xl mr-3">{{ link.icon }}</span>
+          {{ link.label }}
+        </a>
+      }
+    }
+  </nav>
+  <div class="p-4 border-t border-slate-700">
+     <button (click)="logout()" class="w-full flex items-center px-4 py-2 text-slate-300 hover:bg-red-600 hover:text-white rounded-md transition-colors duration-200">
+        <span class="text-xl mr-3">🚪</span>
+        Cerrar Sesión
+    </button>
+  </div>
+</aside>
+
+<!-- Mobile Bottom Nav -->
+<div class="md:hidden fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 z-50">
+  <div class="flex justify-around">
+    @for(link of navLinks; track link.path) {
+      @if ((!link.adminOnly || isAdmin) && link.path !== '/new-order') {
+        <a [routerLink]="link.path" routerLinkActive="text-primary-400" [routerLinkActiveOptions]="{ exact: true }" class="flex flex-col items-center justify-center p-2 text-slate-400 hover:text-primary-400 w-full transition-colors duration-200">
+          <span class="text-2xl">{{ link.icon }}</span>
+          <span class="text-xs">{{ link.label }}</span>
+        </a>
+      }
+    }
+    <button (click)="logout()" class="flex flex-col items-center justify-center p-2 text-slate-400 hover:text-primary-400 w-full transition-colors duration-200">
+        <span class="text-2xl">🚪</span>
+        <span class="text-xs">Salir</span>
+    </button>
+  </div>
+</div>
