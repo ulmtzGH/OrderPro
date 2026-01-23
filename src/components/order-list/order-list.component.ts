@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { OrderService } from '../../services/order.service';
+import { AuthService } from '../../services/auth.service';
 import { Order, OrderStatus } from '../../models/order.model';
 import { OrderStatusBadgeComponent } from '../shared/order-status-badge/order-status-badge.component';
 
@@ -12,17 +13,26 @@ import { OrderStatusBadgeComponent } from '../shared/order-status-badge/order-st
 })
 export class OrderListComponent {
   private orderService = inject(OrderService);
+  private authService = inject(AuthService);
   
   orders = this.orderService.orders;
+  currentUser = this.authService.currentUser;
+  
   filterStatus = signal<OrderStatus | 'All'>('All');
   searchFilter = signal<string>('');
   
   readonly statuses: (OrderStatus | 'All')[] = ['All', 'Pendiente', 'En Preparación', 'Listo para servir', 'Entregado', 'Pagado', 'Cancelado'];
 
   filteredOrders = computed(() => {
+    const user = this.currentUser();
     const status = this.filterStatus();
     const search = this.searchFilter().toLowerCase().trim();
     let orders = this.orders();
+
+    // Customer restriction: only see own orders
+    if (user && user.role === 'Customer') {
+        orders = orders.filter(o => o.customerId === user.id);
+    }
 
     if (status !== 'All') {
       orders = orders.filter(order => order.status === status);
@@ -42,6 +52,12 @@ export class OrderListComponent {
     });
   });
 
+  // Computed to check if user can edit orders
+  canManageOrders = computed(() => {
+    const role = this.currentUser()?.role;
+    return role === 'Admin' || role === 'Waiter';
+  });
+
   setFilter(status: OrderStatus | 'All') {
     this.filterStatus.set(status);
   }
@@ -56,7 +72,7 @@ export class OrderListComponent {
   }
 
   updateOrderStatus(order: Order, newStatus: OrderStatus) {
-    this.orderService.updateOrderStatus(order.id, newStatus);
+    this.orderService.updateOrderStatus(order.id, newStatus).subscribe();
   }
   
   getNextStatus(currentStatus: OrderStatus): OrderStatus | null {

@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MenuService } from '../../services/menu.service';
 import { OrderService } from '../../services/order.service';
+import { AuthService } from '../../services/auth.service';
 import { Product } from '../../models/product.model';
 import { OrderItem } from '../../models/order.model';
 import { FormsModule } from '@angular/forms';
@@ -21,10 +22,14 @@ interface GroupedProducts {
 export class NewOrderComponent {
   private menuService = inject(MenuService);
   private orderService = inject(OrderService);
+  private authService = inject(AuthService);
   private router = inject(Router);
 
   private allProducts = this.menuService.products;
   private allCategories = computed(() => this.menuService.getCategories());
+
+  currentUser = this.authService.currentUser;
+  isCustomer = computed(() => this.currentUser()?.role === 'Customer');
 
   // Signals for filters
   nameFilter = signal<string>('');
@@ -76,10 +81,20 @@ export class NewOrderComponent {
   orderSummary = computed(() => {
     const items = this.orderItems();
     const subtotal = items.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
-    const tax = subtotal * 0.16;
-    const total = subtotal + tax;
-    return { subtotal, tax, total };
+    // Tax removed
+    const total = subtotal;
+    return { subtotal, total };
   });
+
+  constructor() {
+    effect(() => {
+        const user = this.currentUser();
+        if (user && user.role === 'Customer') {
+            this.isTakeaway.set(true);
+            this.customerName.set(user.name);
+        }
+    });
+  }
 
   updateNameFilter(event: Event) {
     const target = event.target as HTMLInputElement;
@@ -95,11 +110,22 @@ export class NewOrderComponent {
   }
   
   toggleTakeaway() {
+    // Removed restriction for Customers. They can now toggle this option.
     this.isTakeaway.update(value => !value);
     if (this.isTakeaway()) {
       this.tableNumber.set(null);
+      // If user is customer, ensure name is refilled if they toggle back
+      const user = this.currentUser();
+      if (user && user.role === 'Customer') {
+         this.customerName.set(user.name);
+      }
     } else {
-      this.customerName.set('');
+      // If not takeaway, we don't necessarily clear customerName if logged in,
+      // but the UI won't use it for the order logic in table mode usually.
+      // Keeping it clean:
+      if (!this.isCustomer()) {
+          this.customerName.set('');
+      }
     }
   }
 
@@ -157,7 +183,18 @@ export class NewOrderComponent {
         alert('Por favor, añade productos y especifica un número de mesa o el nombre del cliente para llevar.');
         return;
     }
-    this.orderService.createOrder(this.orderItems(), this.tableNumber(), this.isTakeaway(), this.customerName());
-    this.router.navigate(['/orders']);
+    
+    const user = this.currentUser();
+    const customerId = (user && user.role === 'Customer') ? user.id : undefined;
+
+    this.orderService.createOrder(
+        this.orderItems(), 
+        this.tableNumber(), 
+        this.isTakeaway(), 
+        this.customerName(),
+        customerId
+    ).subscribe(() => {
+        this.router.navigate(['/orders']);
+    });
   }
 }

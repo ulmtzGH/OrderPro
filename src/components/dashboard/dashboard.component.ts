@@ -1,7 +1,7 @@
 import { AfterViewInit, ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { OrderService } from '../../services/order.service';
-import { Order, OrderStatus } from '../../models/order.model';
+import { OrderStatus } from '../../models/order.model';
 import { AuthService } from '../../services/auth.service';
 import { User } from '../../models/user.model';
 import { RouterLink } from '@angular/router';
@@ -21,13 +21,14 @@ export class DashboardComponent implements AfterViewInit {
   authService = inject(AuthService);
 
   orders = this.orderService.orders;
-  currentUser = this.authService.currentUser as () => User;
+  currentUser = this.authService.currentUser;
   
   private todaysOrders = computed(() => {
     const orders = this.orders();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return orders.filter(o => o.createdAt >= today);
+    // Ensure we are comparing dates correctly
+    return orders.filter(o => new Date(o.createdAt) >= today);
   });
 
   stats = computed(() => {
@@ -43,7 +44,8 @@ export class DashboardComponent implements AfterViewInit {
   salesByHour = computed(() => {
     const hourlySales = Array(24).fill(0).map((_, i) => ({ hour: i, sales: 0 }));
     this.todaysOrders().forEach(order => {
-        const hour = order.createdAt.getHours();
+        const date = new Date(order.createdAt);
+        const hour = date.getHours();
         hourlySales[hour].sales += order.total;
     });
     return hourlySales;
@@ -76,7 +78,7 @@ export class DashboardComponent implements AfterViewInit {
 
   constructor() {
     effect(() => {
-      // Re-render charts when order data changes
+      // Re-render charts when order data changes and the element is available
       if (this.elementRef.nativeElement.querySelector('#sales-chart')) {
         this.createCharts();
       }
@@ -120,7 +122,7 @@ export class DashboardComponent implements AfterViewInit {
         .selectAll('text').attr('class', 'fill-current text-slate-400 text-xs').style('text-anchor', 'end').attr('transform', 'rotate(-45)');
 
     const y = d3.scaleLinear().domain([0, d3.max(data, d => d.sales) * 1.1 || 10]).range([height, 0]);
-    svg.append('g').call(d3.axisLeft(y).ticks(5).tickFormat(d => `€${d}`)).selectAll('text').attr('class', 'fill-current text-slate-400 text-xs');
+    svg.append('g').call(d3.axisLeft(y).ticks(5).tickFormat(d => `$${d}`)).selectAll('text').attr('class', 'fill-current text-slate-400 text-xs');
     
     svg.selectAll('rect').data(data).enter().append('rect')
         .attr('x', d => x(`${d.hour}:00`)).attr('y', d => y(d.sales))

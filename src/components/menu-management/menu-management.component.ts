@@ -95,9 +95,9 @@ export class MenuManagementComponent {
 
     const formValue = this.productForm.value;
     if (this.editingProduct()) {
-      this.menuService.updateProduct({ ...this.editingProduct()!, ...formValue });
+      this.menuService.updateProduct({ ...this.editingProduct()!, ...formValue }).subscribe();
     } else {
-      this.menuService.addProduct(formValue);
+      this.menuService.addProduct(formValue).subscribe();
     }
     this.closeModal();
   }
@@ -113,7 +113,7 @@ export class MenuManagementComponent {
   confirmDelete() {
     const product = this.productToDelete();
     if (product) {
-      this.menuService.deleteProduct(product.id);
+      this.menuService.deleteProduct(product.id).subscribe();
       this.productToDelete.set(null);
     }
   }

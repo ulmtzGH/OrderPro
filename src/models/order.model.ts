@@ -13,10 +13,11 @@ export interface Order {
   items: OrderItem[];
   total: number;
   subtotal: number;
-  tax: number;
+  // tax property removed
   status: OrderStatus;
   createdAt: Date;
   tableNumber: number | null;
   isTakeaway: boolean;
   customerName?: string;
+  customerId?: number; // Link to a registered user
 }

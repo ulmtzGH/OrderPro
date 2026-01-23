@@ -10,8 +10,25 @@ const authGuard: CanActivateFn = () => {
     return true;
   }
   
-  // FIX: Return a UrlTree for redirection, which is the correct pattern for a CanActivateFn guard.
+  // Return a UrlTree for redirection
   return router.createUrlTree(['/login']);
+};
+
+const dashboardGuard: CanActivateFn = () => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+  const user = authService.currentUser();
+
+  if (!user) {
+    return router.createUrlTree(['/login']);
+  }
+
+  // Customers are not allowed in dashboard
+  if (user.role === 'Customer') {
+    return router.createUrlTree(['/new-order']);
+  }
+  
+  return true;
 };
 
 export const APP_ROUTES: Routes = [
@@ -20,8 +37,12 @@ export const APP_ROUTES: Routes = [
     loadComponent: () => import('./components/login/login.component').then(m => m.LoginComponent),
   },
   {
+    path: 'register',
+    loadComponent: () => import('./components/register/register.component').then(m => m.RegisterComponent),
+  },
+  {
     path: 'dashboard',
-    canActivate: [authGuard],
+    canActivate: [dashboardGuard],
     loadComponent: () => import('./components/dashboard/dashboard.component').then(m => m.DashboardComponent),
   },
   {

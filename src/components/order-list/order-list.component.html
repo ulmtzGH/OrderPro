@@ -70,20 +70,26 @@
         </div>
         
         <div class="border-t border-slate-700 pt-4 flex justify-between items-center">
-          <span class="text-lg font-semibold text-white">{{ order.total | currency:'EUR' }}</span>
+          <span class="text-lg font-semibold text-white">{{ order.total | currency:'MXN':'symbol-narrow' }}</span>
           <p class="text-xs text-slate-500">{{ order.createdAt | date:'shortTime' }}</p>
         </div>
 
         <div class="pt-4 flex flex-col space-y-2">
-           @if (getNextStatus(order.status)) {
+           <!-- Only Admin or Waiter can advance status -->
+           @if (canManageOrders() && getNextStatus(order.status)) {
             <button (click)="updateOrderStatus(order, getNextStatus(order.status)!)" class="w-full bg-primary-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors">
               Marcar como {{ getNextStatus(order.status) }}
             </button>
           }
+          
+          <!-- Cancellation Logic -->
           @if (order.status !== 'Cancelado' && order.status !== 'Entregado' && order.status !== 'Pagado') {
-            <button (click)="updateOrderStatus(order, 'Cancelado')" class="w-full bg-red-800/80 text-red-200 font-semibold py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
-              Cancelar
-            </button>
+             <!-- Admin/Waiter can cancel. Customers can ONLY cancel if status is 'Pendiente' -->
+             @if (canManageOrders() || (currentUser()?.role === 'Customer' && order.status === 'Pendiente')) {
+                <button (click)="updateOrderStatus(order, 'Cancelado')" class="w-full bg-red-800/80 text-red-200 font-semibold py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
+                  Cancelar
+                </button>
+             }
           }
         </div>
       </div>

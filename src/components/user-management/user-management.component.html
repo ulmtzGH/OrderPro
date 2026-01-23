@@ -1,11 +1,215 @@
-<div class="space-y-6">
-  <h1 class="text-3xl font-bold text-white">Gestión de Usuarios</h1>
-  
-  <div class="bg-slate-800 rounded-xl p-8 text-center">
-    <span class="text-6xl">👥</span>
-    <h2 class="mt-4 text-2xl font-semibold text-white">Próximamente</h2>
-    <p class="mt-2 text-slate-400">
-      Esta sección permitirá administrar empleados, roles y permisos.
-    </p>
+<div class="space-y-6 pb-16">
+  <div class="flex flex-col md:flex-row md:justify-between md:items-center space-y-4 md:space-y-0">
+    <h1 class="text-3xl font-bold text-white">Gestión de Usuarios</h1>
+    <button (click)="openModal()" class="bg-primary-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors shadow-lg">
+      Añadir Usuario
+    </button>
+  </div>
+
+  <!-- Filters & Search -->
+  <div class="space-y-4">
+    <div class="relative">
+      <label for="user-search" class="sr-only">Buscar usuario</label>
+      <input 
+        id="user-search"
+        type="text" 
+        placeholder="Buscar por nombre, usuario, teléfono o email..."
+        [value]="searchTerm()"
+        (input)="updateSearchTerm($event)"
+        class="w-full bg-slate-700 border border-slate-600 rounded-full py-2 pl-10 pr-10 text-white placeholder-slate-400 focus:ring-primary-500 focus:border-primary-500 transition-all"
+      >
+      <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+        <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+      </div>
+      @if (searchTerm()) {
+        <button (click)="clearSearchTerm()" type="button" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-white">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      }
+    </div>
+    
+    <div class="flex flex-wrap gap-2">
+      @for(role of filterRoles; track role) {
+        <button 
+          (click)="setRoleFilter(role)"
+          [class.bg-primary-600]="roleFilter() === role"
+          [class.text-white]="roleFilter() === role"
+          [class.bg-slate-700]="roleFilter() !== role"
+          [class.text-slate-300]="roleFilter() !== role"
+          class="px-4 py-2 text-sm font-medium rounded-full hover:bg-primary-500 transition-colors">
+          {{ role === 'All' ? 'Todos' : role }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Mobile Card View -->
+  <div class="md:hidden space-y-4">
+    @for(user of filteredUsers(); track user.id) {
+      <div class="bg-slate-800 rounded-xl shadow-lg p-5 border border-slate-700/50">
+        <div class="flex justify-between items-start mb-3">
+          <div>
+            <h3 class="text-lg font-bold text-white">{{ user.name }}</h3>
+            <p class="text-sm text-slate-400">@ {{ user.username }}</p>
+          </div>
+          <span [class]="'px-2 py-1 text-xs font-medium rounded-full ' + 
+            (user.role === 'Admin' ? 'bg-purple-500/20 text-purple-300' : 
+             user.role === 'Waiter' ? 'bg-blue-500/20 text-blue-300' : 
+             'bg-green-500/20 text-green-300')">
+            {{ user.role }}
+          </span>
+        </div>
+        
+        <div class="space-y-2 mb-4 text-sm text-slate-300">
+           <div class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+              <span>{{ user.phone }}</span>
+           </div>
+           <div class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+              <span class="truncate">{{ user.email || 'Sin correo' }}</span>
+           </div>
+        </div>
+
+        <div class="flex justify-end space-x-3 pt-3 border-t border-slate-700">
+            <button (click)="openModal(user)" class="text-sm font-medium text-primary-400 hover:text-primary-300 flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                Editar
+            </button>
+            <button (click)="requestDelete(user)" class="text-sm font-medium text-red-400 hover:text-red-300 flex items-center gap-1">
+                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                Eliminar
+            </button>
+        </div>
+      </div>
+    } @empty {
+      <div class="text-center py-12 bg-slate-800 rounded-xl">
+        <p class="text-slate-400">No se encontraron usuarios.</p>
+      </div>
+    }
+  </div>
+
+  <!-- Desktop Table View -->
+  <div class="hidden md:block bg-slate-800 rounded-xl shadow-lg overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left text-slate-300">
+        <thead class="text-xs text-slate-400 uppercase bg-slate-700/50">
+          <tr>
+            <th scope="col" class="px-6 py-3">Nombre</th>
+            <th scope="col" class="px-6 py-3">Usuario</th>
+            <th scope="col" class="px-6 py-3">Rol</th>
+            <th scope="col" class="px-6 py-3">Teléfono</th>
+            <th scope="col" class="px-6 py-3">Email</th>
+            <th scope="col" class="px-6 py-3 text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for(user of filteredUsers(); track user.id) {
+            <tr class="border-b border-slate-700 hover:bg-slate-700/30 transition-colors">
+              <td class="px-6 py-4 font-medium text-white">{{ user.name }}</td>
+              <td class="px-6 py-4">{{ user.username }}</td>
+              <td class="px-6 py-4">
+                <span [class]="'px-2 py-1 text-xs font-medium rounded-full ' + 
+                  (user.role === 'Admin' ? 'bg-purple-500/20 text-purple-300' : 
+                   user.role === 'Waiter' ? 'bg-blue-500/20 text-blue-300' : 
+                   'bg-green-500/20 text-green-300')">
+                  {{ user.role }}
+                </span>
+              </td>
+              <td class="px-6 py-4">{{ user.phone }}</td>
+              <td class="px-6 py-4 text-slate-400 italic">{{ user.email || '-' }}</td>
+              <td class="px-6 py-4 text-right space-x-3">
+                <button (click)="openModal(user)" class="font-medium text-primary-500 hover:text-primary-400 hover:underline">Editar</button>
+                <button (click)="requestDelete(user)" class="font-medium text-red-500 hover:text-red-400 hover:underline">Eliminar</button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+               <td colspan="6" class="text-center py-12 text-slate-400">
+                   No se encontraron usuarios con los filtros seleccionados.
+               </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
+
+<!-- Modal Añadir/Editar -->
+@if (isModalOpen()) {
+  <div class="fixed inset-0 bg-black/70 z-50 flex justify-center items-center p-4">
+    <div class="bg-slate-800 rounded-xl shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh]">
+      <form [formGroup]="userForm" (ngSubmit)="saveUser()">
+        <div class="p-6 border-b border-slate-700">
+          <h3 class="text-xl font-semibold text-white">
+            {{ editingUser() ? 'Editar' : 'Añadir' }} Usuario
+          </h3>
+        </div>
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="block mb-2 text-sm font-medium text-slate-300">Nombre Completo</label>
+            <input type="text" formControlName="name" class="w-full bg-slate-700 border border-slate-600 rounded-lg py-2 px-3 text-white focus:ring-primary-500 focus:border-primary-500 placeholder-slate-500">
+            @if(userForm.get('name')?.invalid && userForm.get('name')?.touched) {
+               <p class="mt-1 text-xs text-red-400">El nombre es requerido.</p>
+            }
+          </div>
+          <div>
+            <label class="block mb-2 text-sm font-medium text-slate-300">Nombre de Usuario</label>
+            <input type="text" formControlName="username" class="w-full bg-slate-700 border border-slate-600 rounded-lg py-2 px-3 text-white focus:ring-primary-500 focus:border-primary-500 placeholder-slate-500">
+             @if(userForm.get('username')?.invalid && userForm.get('username')?.touched) {
+               <p class="mt-1 text-xs text-red-400">El usuario es requerido.</p>
+            }
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div>
+                <label class="block mb-2 text-sm font-medium text-slate-300">Teléfono</label>
+                <input type="tel" formControlName="phone" class="w-full bg-slate-700 border border-slate-600 rounded-lg py-2 px-3 text-white focus:ring-primary-500 focus:border-primary-500 placeholder-slate-500">
+                @if(userForm.get('phone')?.invalid && userForm.get('phone')?.touched) {
+                   <p class="mt-1 text-xs text-red-400">Teléfono inválido.</p>
+                }
+             </div>
+             <div>
+                <label class="block mb-2 text-sm font-medium text-slate-300">Rol</label>
+                <select formControlName="role" class="w-full bg-slate-700 border border-slate-600 rounded-lg py-2 px-3 text-white focus:ring-primary-500 focus:border-primary-500">
+                  @for(role of roles; track role) {
+                    <option [value]="role">{{ role }}</option>
+                  }
+                </select>
+             </div>
+          </div>
+          <div>
+            <label class="block mb-2 text-sm font-medium text-slate-300">Correo Electrónico <span class="text-slate-500 text-xs">(Opcional)</span></label>
+            <input type="email" formControlName="email" class="w-full bg-slate-700 border border-slate-600 rounded-lg py-2 px-3 text-white focus:ring-primary-500 focus:border-primary-500 placeholder-slate-500">
+             @if(userForm.get('email')?.invalid && userForm.get('email')?.touched) {
+               <p class="mt-1 text-xs text-red-400">Formato de correo inválido.</p>
+            }
+          </div>
+        </div>
+        <div class="p-6 border-t border-slate-700 flex justify-end space-x-2">
+          <button (click)="closeModal()" type="button" class="text-slate-400 hover:bg-slate-700 hover:text-white px-4 py-2 rounded-lg transition-colors">Cancelar</button>
+          <button type="submit" [disabled]="userForm.invalid" class="bg-primary-600 text-white hover:bg-primary-700 px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- Modal Confirmar Eliminación -->
+@if (userToDelete()) {
+  <div class="fixed inset-0 bg-black/70 z-50 flex justify-center items-center p-4">
+    <div class="bg-slate-800 rounded-xl shadow-2xl w-full max-w-sm p-6 text-center border border-slate-700">
+      <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-900/50 mb-4">
+        <svg class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+      </div>
+      <h3 class="text-lg font-semibold text-white">Eliminar Usuario</h3>
+      <p class="text-slate-400 mt-2">¿Estás seguro de que deseas eliminar a <span class="text-white font-medium">{{ userToDelete()?.name }}</span>?</p>
+      <div class="mt-6 flex justify-center space-x-3">
+        <button (click)="cancelDelete()" class="px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">Cancelar</button>
+        <button (click)="confirmDelete()" class="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors">Eliminar</button>
+      </div>
+    </div>
+  </div>
+}

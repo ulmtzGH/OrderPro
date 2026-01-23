@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-login',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './login.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -19,8 +19,15 @@ export class LoginComponent {
 
   login() {
     this.errorMessage.set(null);
-    if (!this.authService.login(this.username, this.password)) {
-      this.errorMessage.set('Credenciales inválidas. Intente con "admin" o "waiter".');
-    }
+    this.authService.login(this.username, this.password).subscribe({
+      next: (user) => {
+        if (!user) {
+          this.errorMessage.set('Credenciales inválidas. Intente con "admin", "waiter" o "cliente".');
+        }
+      },
+      error: () => {
+        this.errorMessage.set('Error de conexión con el servidor.');
+      }
+    });
   }
 }
